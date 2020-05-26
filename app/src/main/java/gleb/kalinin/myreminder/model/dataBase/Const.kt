@@ -1,4 +1,4 @@
-package gleb.kalinin.myreminder.model.database
+package gleb.kalinin.myreminder.model.dataBase
 
 const val DB_NAME = "ToDoList"
 const val DB_VERSION = 1
