@@ -2,6 +2,7 @@ package gleb.kalinin.myreminder
 
 import android.content.Context
 import android.content.DialogInterface
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -13,6 +14,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import gleb.kalinin.myreminder.model.dataBase.DBHandler
+import gleb.kalinin.myreminder.model.dataBase.INTENT_TODO_ID
+import gleb.kalinin.myreminder.model.dataBase.INTENT_TODO_NAME
 import gleb.kalinin.myreminder.model.dto.ToDo
 import kotlinx.android.synthetic.main.activity_dashboard.*
 
@@ -71,6 +74,13 @@ class DashboardActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: ViewHolder, p1: Int) {
             // значению toDoName -> даём 1-ое значение из базы данных
             holder.toDoName.text = list[p1].name
+
+            holder.toDoName.setOnClickListener {
+                val intent = Intent(context, ItemActivity::class.java)
+                intent.putExtra(INTENT_TODO_ID,list[p1].id)
+                intent.putExtra(INTENT_TODO_NAME,list[p1].name)
+                context.startActivity(intent)
+            }
         }
 
         class ViewHolder(v : View): RecyclerView.ViewHolder(v) {
