@@ -41,12 +41,14 @@ class DashboardActivity : AppCompatActivity() {
                 if(todoName.text.isNotEmpty()){
                     val toDo = ToDo()
                     toDo.name = todoName.text.toString()
+                    // Adding new task
                     dbHandler.addToDo(toDo)
+                    // Refreshing
                     refreshList()
                 }
             }
             dialog.setNegativeButton("Cancel") { _: DialogInterface, _: Int ->
-
+                // negative button
             }
             dialog.show()
         }
@@ -61,7 +63,7 @@ class DashboardActivity : AppCompatActivity() {
         rv_dashboard.adapter = DashboardAdapter(this, dbHandler.getToDos())
     }
 
-    class  DashboardAdapter(val context: Context, val list: MutableList<ToDo>) : RecyclerView.Adapter<DashboardAdapter.ViewHolder> () {
+    class DashboardAdapter(val context: Context, val list: MutableList<ToDo>) : RecyclerView.Adapter<DashboardAdapter.ViewHolder> () {
 
         override fun onCreateViewHolder(p0: ViewGroup, p1: Int): ViewHolder {
             return ViewHolder(LayoutInflater.from(context).inflate(R.layout.rv_child_dashboard, p0, false))

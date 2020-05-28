@@ -8,10 +8,7 @@ import gleb.kalinin.myreminder.model.dataBase.*
 import gleb.kalinin.myreminder.model.dto.ToDo
 import gleb.kalinin.myreminder.model.dto.ToDoItem
 
-class DBHandler (val context: Context) : SQLiteOpenHelper (context,
-    DB_NAME, null,
-    DB_VERSION
-) {
+class DBHandler (val context: Context) : SQLiteOpenHelper (context, DB_NAME, null, DB_VERSION) {
     override fun onCreate(db: SQLiteDatabase) {
         val createToDoTable = "CREATE TABLE $TABLE_TODO (" +
                 "$COL_ID integer PRIMARY KEY AUTOINCREMENT," +
@@ -40,12 +37,12 @@ class DBHandler (val context: Context) : SQLiteOpenHelper (context,
         val cv = ContentValues()
         cv.put(COL_NAME, toDo.name)
         val result = db.insert(TABLE_TODO, null, cv)
-        // If result doesn't equals -1 => True. У нас в (dto.ToDo) -> Таблица SQL начинается с Id(long) -1.
+        // If result doesn't equals -1 => True. У нас в (dto.doTo) -> Таблица SQL начинается с Id(long) -1.
         return result != (-1).toLong()
     }
 
     fun getToDos() : MutableList<ToDo> {
-        // Storing toDo items
+        // Storing tоDo items
         val result: MutableList<ToDo> = ArrayList()
         // read the data
         val db = readableDatabase
@@ -77,7 +74,20 @@ class DBHandler (val context: Context) : SQLiteOpenHelper (context,
             cv.put(COL_IS_COMPLETED, false)
 
         val result = db.insert(TABLE_TODO_ITEM, null, cv)
-        return result!= (-1).toLong()
+        return result != (-1).toLong()
+    }
+
+    fun updateToDoItem (item : ToDoItem) {
+        val db = writableDatabase
+        val cv = ContentValues()
+        cv.put(COL_ITEM_NAME, item.itemName)
+        cv.put(COL_TODO_ID, item.toDoId)
+        if (item.isCompleted)
+            cv.put(COL_IS_COMPLETED, true) // В SQLite ( true = 1, false = 0)
+        else
+            cv.put(COL_IS_COMPLETED, false)
+
+        db.update(TABLE_TODO_ITEM, cv, "$COL_ID=?" , arrayOf(item.id.toString()))
     }
 
     fun getToDoItem (todoId: Long) : MutableList<ToDoItem> {
@@ -95,7 +105,7 @@ class DBHandler (val context: Context) : SQLiteOpenHelper (context,
                 item.isCompleted = queryResult.getInt(queryResult.getColumnIndex(COL_IS_COMPLETED)) == 1 // true while 1
                 item.toDoId = todoId
                 result.add(item)
-            } while (queryResult.moveToFirst())
+            } while (queryResult.moveToNext())
         }
 
         queryResult.close()

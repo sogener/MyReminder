@@ -70,10 +70,10 @@ class ItemActivity : AppCompatActivity() {
     }
 
     private fun refreshList() {
-        rv_item.adapter = ItemAdapter(this, dbHandler.getToDoItem(todoId))
+        rv_item.adapter = ItemAdapter(this, dbHandler, dbHandler.getToDoItem(todoId))
     }
 
-    class ItemAdapter(val context: Context, val list: MutableList<ToDoItem>) : RecyclerView.Adapter<ItemAdapter.ViewHolder> () {
+    class ItemAdapter(val context: Context, val dbHandler: DBHandler, val list: MutableList<ToDoItem>) : RecyclerView.Adapter<ItemAdapter.ViewHolder> () {
 
         override fun onCreateViewHolder(p0: ViewGroup, p1: Int): ViewHolder {
             return ViewHolder(LayoutInflater.from(context).inflate(R.layout.rv_child_item, p0, false))
@@ -87,27 +87,26 @@ class ItemActivity : AppCompatActivity() {
             // значению toDoName -> даём 1-ое значение из базы данных
             holder.itemName.text = list[p1].itemName
             holder.itemName.isChecked = list[p1].isCompleted
+
             holder.itemName.setOnClickListener {
-                val intent = Intent(context, ItemActivity::class.java)
-                intent.putExtra(INTENT_TODO_ID,list[p1].id)
-                intent.putExtra(INTENT_TODO_NAME,list[p1].itemName)
-                context.startActivity(intent)
+                // reverse is completed
+                list[p1].isCompleted = !list[p1].isCompleted
+                dbHandler.updateToDoItem(list[p1])
             }
         }
 
         class ViewHolder(v : View): RecyclerView.ViewHolder(v) {
-            val itemName: CheckBox = v.findViewById(R.id.tv_todo_name)
+            val itemName: CheckBox = v.findViewById(R.id.cb_item)
         }
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+    override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         // if true - toolbar button was pressed
         return if (item?.itemId == android.R.id.home) {
             // clean activity
             finish()
             true
-        }
-        else
+        } else
             super.onOptionsItemSelected(item)
     }
 }
