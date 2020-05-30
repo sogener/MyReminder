@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">MyReminder</string>
+
+    <string name="edit">Редактировать</string>
+    <string name="delete">Удалить</string>
+    <string name="mark_as_completed">Отметить как выполенное</string>
+    <string name="reset">Обновить</string>
 </resources>

@@ -9,6 +9,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.ImageView
+import android.widget.PopupMenu
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -34,10 +36,11 @@ class DashboardActivity : AppCompatActivity() {
 
         fab_dashboard.setOnClickListener {
             val dialog = AlertDialog.Builder(this)
+            dialog.setTitle("Добавление новой заметки")
             val view = layoutInflater.inflate(R.layout.dialog_dashboard, null)
             val todoName = view.findViewById<EditText>(R.id.ev_todo)
             dialog.setView(view)
-            dialog.setPositiveButton("Add") { _: DialogInterface, _: Int ->
+            dialog.setPositiveButton("Добавить") { _: DialogInterface, _: Int ->
                 if(todoName.text.isNotEmpty()){
                     val toDo = ToDo()
                     toDo.name = todoName.text.toString()
@@ -47,12 +50,33 @@ class DashboardActivity : AppCompatActivity() {
                     refreshList()
                 }
             }
-            dialog.setNegativeButton("Cancel") { _: DialogInterface, _: Int ->
+            dialog.setNegativeButton("Отменить") { _: DialogInterface, _: Int ->
                 // negative button
             }
             dialog.show()
         }
     }
+
+    fun updateToDo(toDo: ToDo){
+        val dialog = AlertDialog.Builder(this)
+        dialog.setTitle("Обновление заметки")
+        val view = layoutInflater.inflate(R.layout.dialog_dashboard, null)
+        val todoName = view.findViewById<EditText>(R.id.ev_todo)
+        todoName.setText(toDo.name)
+        dialog.setView(view)
+        dialog.setPositiveButton("Обновить") { _: DialogInterface, _: Int ->
+            if(todoName.text.isNotEmpty()){
+                toDo.name = todoName.text.toString()
+                dbHandler.updateToDo(toDo)
+                refreshList()
+            }
+        }
+        dialog.setNegativeButton("Отменить") { _: DialogInterface, _: Int ->
+            // negative button
+        }
+        dialog.show()
+    }
+
 
     override fun onResume() {
         refreshList()
@@ -63,10 +87,10 @@ class DashboardActivity : AppCompatActivity() {
         rv_dashboard.adapter = DashboardAdapter(this, dbHandler.getToDos())
     }
 
-    class DashboardAdapter(val context: Context, val list: MutableList<ToDo>) : RecyclerView.Adapter<DashboardAdapter.ViewHolder> () {
+    class DashboardAdapter(val activity: DashboardActivity, val list: MutableList<ToDo>) : RecyclerView.Adapter<DashboardAdapter.ViewHolder> () {
 
         override fun onCreateViewHolder(p0: ViewGroup, p1: Int): ViewHolder {
-            return ViewHolder(LayoutInflater.from(context).inflate(R.layout.rv_child_dashboard, p0, false))
+            return ViewHolder(LayoutInflater.from(activity).inflate(R.layout.rv_child_dashboard, p0, false))
         }
 
         override fun getItemCount(): Int {
@@ -78,15 +102,43 @@ class DashboardActivity : AppCompatActivity() {
             holder.toDoName.text = list[p1].name
 
             holder.toDoName.setOnClickListener {
-                val intent = Intent(context, ItemActivity::class.java)
+                val intent = Intent(activity, ItemActivity::class.java)
                 intent.putExtra(INTENT_TODO_ID,list[p1].id)
                 intent.putExtra(INTENT_TODO_NAME,list[p1].name)
-                context.startActivity(intent)
+                activity.startActivity(intent)
+            }
+
+            holder.menu.setOnClickListener {
+                // При нажатии на 3 точки (IV), открывается меню
+                val popup = PopupMenu(activity, holder.menu)
+                popup.inflate(R.menu.dashboard_child)
+                popup.setOnMenuItemClickListener {
+
+                    when(it.itemId){
+                        R.id.menu_edit -> {
+                            activity.updateToDo(list[p1])
+                        }
+                        R.id.menu_delete -> {
+                            activity.dbHandler.deleteToDo(list[p1].id)
+                            activity.refreshList()
+                        }
+                        R.id.menu_mark_as_completed -> {
+                            activity.dbHandler.updateToDoItemCompletedStatus(list[p1].id, true)
+                        }
+                        R.id.menu_reset -> {
+                            activity.dbHandler.updateToDoItemCompletedStatus(list[p1].id, false)
+                        }
+                    }
+
+                    true
+                }
+                popup.show()
             }
         }
 
         class ViewHolder(v : View): RecyclerView.ViewHolder(v) {
             val toDoName: TextView = v.findViewById(R.id.tv_todo_name)
+            val menu : ImageView = v.findViewById(R.id.iv_menu)
         }
     }
 }
