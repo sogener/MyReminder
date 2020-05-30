@@ -9,7 +9,7 @@ import android.view.animation.AnimationUtils
 import gleb.kalinin.myreminder.R
 import kotlinx.android.synthetic.main.activity_main.*
 
-class MainActivity : AppCompatActivity() {
+class LogoActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,7 +24,7 @@ class MainActivity : AppCompatActivity() {
             ))
             Handler().postDelayed({
                 ic_logo.visibility = View.GONE
-                startActivity(Intent(this@MainActivity, DashboardActivity::class.java))
+                startActivity(Intent(this@LogoActivity, DashboardActivity::class.java))
                 finish()
             }, 500)
         }, 1500)
