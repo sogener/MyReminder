@@ -1,6 +1,5 @@
-package gleb.kalinin.myreminder
+package gleb.kalinin.myreminder.activity
 
-import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
@@ -15,6 +14,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import gleb.kalinin.myreminder.R
 import gleb.kalinin.myreminder.model.dataBase.DBHandler
 import gleb.kalinin.myreminder.model.dataBase.INTENT_TODO_ID
 import gleb.kalinin.myreminder.model.dataBase.INTENT_TODO_NAME
@@ -30,7 +30,7 @@ class DashboardActivity : AppCompatActivity() {
         setContentView(R.layout.activity_dashboard)
         // Toolbar
         setSupportActionBar(dashboard_toolbar)
-        title = "DashBoard"
+        title = "Мои заметки"
         dbHandler = DBHandler(this)
         rv_dashboard.layoutManager = LinearLayoutManager(this)
 
@@ -84,13 +84,23 @@ class DashboardActivity : AppCompatActivity() {
     }
 
     private fun refreshList () {
-        rv_dashboard.adapter = DashboardAdapter(this, dbHandler.getToDos())
+        rv_dashboard.adapter =
+            DashboardAdapter(
+                this,
+                dbHandler.getToDos()
+            )
     }
 
     class DashboardAdapter(val activity: DashboardActivity, val list: MutableList<ToDo>) : RecyclerView.Adapter<DashboardAdapter.ViewHolder> () {
 
         override fun onCreateViewHolder(p0: ViewGroup, p1: Int): ViewHolder {
-            return ViewHolder(LayoutInflater.from(activity).inflate(R.layout.rv_child_dashboard, p0, false))
+            return ViewHolder(
+                LayoutInflater.from(activity).inflate(
+                    R.layout.rv_child_dashboard,
+                    p0,
+                    false
+                )
+            )
         }
 
         override fun getItemCount(): Int {
@@ -119,8 +129,17 @@ class DashboardActivity : AppCompatActivity() {
                             activity.updateToDo(list[p1])
                         }
                         R.id.menu_delete -> {
-                            activity.dbHandler.deleteToDo(list[p1].id)
-                            activity.refreshList()
+                            val dialog = AlertDialog.Builder(activity)
+                            dialog.setTitle("Подтвердите действия")
+                            dialog.setMessage("Вы действительно хотите удалить эту заметку?")
+                            dialog.setPositiveButton("Продолжить") { _: DialogInterface, _: Int ->
+                                activity.dbHandler.deleteToDo(list[p1].id)
+                                activity.refreshList()
+                            }
+                            dialog.setNegativeButton("Отменить") { _: DialogInterface, _: Int ->
+
+                            }
+                            dialog.show()
                         }
                         R.id.menu_mark_as_completed -> {
                             activity.dbHandler.updateToDoItemCompletedStatus(list[p1].id, true)

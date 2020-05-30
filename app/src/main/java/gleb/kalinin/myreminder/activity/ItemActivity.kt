@@ -1,8 +1,7 @@
-package gleb.kalinin.myreminder
+package gleb.kalinin.myreminder.activity
 
 import android.content.Context
 import android.content.DialogInterface
-import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -11,17 +10,17 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
 import android.widget.EditText
-import android.widget.TextView
+import android.widget.ImageView
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import gleb.kalinin.myreminder.R
 import gleb.kalinin.myreminder.model.dataBase.DBHandler
 import gleb.kalinin.myreminder.model.dataBase.INTENT_TODO_ID
 import gleb.kalinin.myreminder.model.dataBase.INTENT_TODO_NAME
-import gleb.kalinin.myreminder.model.dto.ToDo
 import gleb.kalinin.myreminder.model.dto.ToDoItem
-import kotlinx.android.synthetic.main.activity_dashboard.*
 import kotlinx.android.synthetic.main.activity_item.*
+import kotlinx.android.synthetic.main.rv_child_dashboard.*
 
 class ItemActivity : AppCompatActivity() {
 
@@ -44,10 +43,11 @@ class ItemActivity : AppCompatActivity() {
 
         fab_item.setOnClickListener {
             val dialog = AlertDialog.Builder(this)
+            dialog.setTitle("Добавление мини-задачи")
             val view = layoutInflater.inflate(R.layout.dialog_dashboard, null)
             val todoName = view.findViewById<EditText>(R.id.ev_todo)
             dialog.setView(view)
-            dialog.setPositiveButton("Add") { _: DialogInterface, _: Int ->
+            dialog.setPositiveButton("Добавить") { _: DialogInterface, _: Int ->
                 if (todoName.text.isNotEmpty()) {
                     val item = ToDoItem()
                     item.itemName = todoName.text.toString()
@@ -57,11 +57,33 @@ class ItemActivity : AppCompatActivity() {
                     refreshList() // или тут
                 }
             }
-            dialog.setNegativeButton("Cancel") {_: DialogInterface, _:Int ->
+            dialog.setNegativeButton("Отменить") {_: DialogInterface, _:Int ->
 
             }
             dialog.show()
         }
+    }
+
+    fun updateItem(item: ToDoItem){
+        val dialog = AlertDialog.Builder(this)
+        dialog.setTitle("Обновление мини-задачи")
+        val view = layoutInflater.inflate(R.layout.dialog_dashboard, null)
+        val toDoName = view.findViewById<EditText>(R.id.ev_todo)
+        toDoName.setText(item.itemName)
+        dialog.setView(view)
+        dialog.setPositiveButton("Обновить") { _: DialogInterface, _: Int ->
+            if (toDoName.text.isNotEmpty()) {
+                item.itemName = toDoName.text.toString()
+                item.toDoId = todoId
+                item.isCompleted = false
+                dbHandler.updateToDoItem(item)
+                refreshList()
+            }
+        }
+        dialog.setNegativeButton("Отменить") {_: DialogInterface, _:Int ->
+
+        }
+        dialog.show()
     }
 
     override fun onResume() {
@@ -70,13 +92,19 @@ class ItemActivity : AppCompatActivity() {
     }
 
     private fun refreshList() {
-        rv_item.adapter = ItemAdapter(this, dbHandler, dbHandler.getToDoItem(todoId))
+        rv_item.adapter = ItemAdapter(this, dbHandler.getToDoItems(todoId))
     }
 
-    class ItemAdapter(val context: Context, val dbHandler: DBHandler, val list: MutableList<ToDoItem>) : RecyclerView.Adapter<ItemAdapter.ViewHolder> () {
+    class ItemAdapter(val activity: ItemActivity, val list: MutableList<ToDoItem>) : RecyclerView.Adapter<ItemAdapter.ViewHolder> () {
 
         override fun onCreateViewHolder(p0: ViewGroup, p1: Int): ViewHolder {
-            return ViewHolder(LayoutInflater.from(context).inflate(R.layout.rv_child_item, p0, false))
+            return ViewHolder(
+                LayoutInflater.from(activity).inflate(
+                    R.layout.rv_child_item,
+                    p0,
+                    false
+                )
+            )
         }
 
         override fun getItemCount(): Int {
@@ -91,12 +119,32 @@ class ItemActivity : AppCompatActivity() {
             holder.itemName.setOnClickListener {
                 // reverse is completed
                 list[p1].isCompleted = !list[p1].isCompleted
-                dbHandler.updateToDoItem(list[p1])
+                activity.dbHandler.updateToDoItem(list[p1])
+            }
+
+            holder.delete.setOnClickListener {
+                val dialog = AlertDialog.Builder(activity)
+                dialog.setTitle("Подтвердите действия")
+                dialog.setMessage("Вы действительно хотите удалить это мини-задание?")
+                dialog.setPositiveButton("Удалить") { _: DialogInterface, _: Int ->
+                    activity.dbHandler.deleteToDoItem(list[p1].id)
+                    activity.refreshList()
+                }
+                dialog.setNegativeButton("Отменить") { _: DialogInterface, _: Int ->
+
+                }
+                dialog.show()
+            }
+
+            holder.edit.setOnClickListener {
+                activity.updateItem(list[p1])
             }
         }
 
         class ViewHolder(v : View): RecyclerView.ViewHolder(v) {
             val itemName: CheckBox = v.findViewById(R.id.cb_item)
+            val edit : ImageView = v.findViewById(R.id.iv_edit)
+            val delete : ImageView = v.findViewById(R.id.iv_delete)
         }
     }
 
