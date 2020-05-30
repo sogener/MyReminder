@@ -1,17 +1,16 @@
 package gleb.kalinin.myreminder.activity
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.DialogInterface
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.MenuItem
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageView
 import androidx.appcompat.app.AlertDialog
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import gleb.kalinin.myreminder.R
@@ -21,18 +20,21 @@ import gleb.kalinin.myreminder.model.dataBase.INTENT_TODO_NAME
 import gleb.kalinin.myreminder.model.dto.ToDoItem
 import kotlinx.android.synthetic.main.activity_item.*
 import kotlinx.android.synthetic.main.rv_child_dashboard.*
+import java.util.*
 
 class ItemActivity : AppCompatActivity() {
 
-    lateinit var dbHandler : DBHandler
-    var todoId : Long = -1
+    lateinit var dbHandler: DBHandler
+    var todoId: Long = -1
+
+    var list: MutableList<ToDoItem>? = null
+    var adapter : ItemAdapter? = null
+    var touchHelper : ItemTouchHelper? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_item)
-        // toolbar
         setSupportActionBar(item_toolbar)
-        // toolbar back arrow
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setHomeButtonEnabled(true)
         supportActionBar?.title = intent.getStringExtra(INTENT_TODO_NAME)
@@ -43,35 +45,58 @@ class ItemActivity : AppCompatActivity() {
 
         fab_item.setOnClickListener {
             val dialog = AlertDialog.Builder(this)
-            dialog.setTitle("Добавление мини-задачи")
+            dialog.setTitle("Добавить задачу")
             val view = layoutInflater.inflate(R.layout.dialog_dashboard, null)
-            val todoName = view.findViewById<EditText>(R.id.ev_todo)
+            val toDoName = view.findViewById<EditText>(R.id.ev_todo)
             dialog.setView(view)
-            dialog.setPositiveButton("Добавить") { _: DialogInterface, _: Int ->
-                if (todoName.text.isNotEmpty()) {
+            dialog.setPositiveButton("Сохранить") { _: DialogInterface, _: Int ->
+                if (toDoName.text.isNotEmpty()) {
                     val item = ToDoItem()
-                    item.itemName = todoName.text.toString()
+                    item.itemName = toDoName.text.toString()
                     item.toDoId = todoId
                     item.isCompleted = false
-                    dbHandler.addToDoItem(item) // тут ошибка
-                    refreshList() // или тут
+                    dbHandler.addToDoItem(item)
+                    refreshList()
                 }
             }
-            dialog.setNegativeButton("Отменить") {_: DialogInterface, _:Int ->
+            dialog.setNegativeButton("Отменить") { _: DialogInterface, _: Int ->
 
             }
             dialog.show()
         }
+
+        touchHelper =
+            ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
+                override fun onMove(
+                    p0: RecyclerView,
+                    p1: RecyclerView.ViewHolder,
+                    p2: RecyclerView.ViewHolder
+                ): Boolean {
+                    val sourcePosition = p1.adapterPosition
+                    val targetPosition = p2.adapterPosition
+                    Collections.swap(list,sourcePosition,targetPosition)
+                    adapter?.notifyItemMoved(sourcePosition,targetPosition)
+                    return true
+                }
+
+                override fun onSwiped(p0: RecyclerView.ViewHolder, p1: Int) {
+                    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                }
+
+            })
+
+        touchHelper?.attachToRecyclerView(rv_item)
+
     }
 
-    fun updateItem(item: ToDoItem){
+    fun updateItem(item: ToDoItem) {
         val dialog = AlertDialog.Builder(this)
-        dialog.setTitle("Обновление мини-задачи")
+        dialog.setTitle("Редактировать задачу")
         val view = layoutInflater.inflate(R.layout.dialog_dashboard, null)
         val toDoName = view.findViewById<EditText>(R.id.ev_todo)
         toDoName.setText(item.itemName)
         dialog.setView(view)
-        dialog.setPositiveButton("Обновить") { _: DialogInterface, _: Int ->
+        dialog.setPositiveButton("Сохранить") { _: DialogInterface, _: Int ->
             if (toDoName.text.isNotEmpty()) {
                 item.itemName = toDoName.text.toString()
                 item.toDoId = todoId
@@ -80,7 +105,7 @@ class ItemActivity : AppCompatActivity() {
                 refreshList()
             }
         }
-        dialog.setNegativeButton("Отменить") {_: DialogInterface, _:Int ->
+        dialog.setNegativeButton("Отменить") { _: DialogInterface, _: Int ->
 
         }
         dialog.show()
@@ -92,41 +117,34 @@ class ItemActivity : AppCompatActivity() {
     }
 
     private fun refreshList() {
-        rv_item.adapter = ItemAdapter(this, dbHandler.getToDoItems(todoId))
+        list = dbHandler.getToDoItems(todoId)
+        adapter = ItemAdapter(this, list!!)
+        rv_item.adapter = adapter
     }
 
-    class ItemAdapter(val activity: ItemActivity, val list: MutableList<ToDoItem>) : RecyclerView.Adapter<ItemAdapter.ViewHolder> () {
-
+    class ItemAdapter(val activity: ItemActivity, val list: MutableList<ToDoItem>) :
+        RecyclerView.Adapter<ItemAdapter.ViewHolder>() {
         override fun onCreateViewHolder(p0: ViewGroup, p1: Int): ViewHolder {
-            return ViewHolder(
-                LayoutInflater.from(activity).inflate(
-                    R.layout.rv_child_item,
-                    p0,
-                    false
-                )
-            )
+            return ViewHolder(LayoutInflater.from(activity).inflate(R.layout.rv_child_item, p0, false))
         }
 
         override fun getItemCount(): Int {
             return list.size
         }
 
+        @SuppressLint("ClickableViewAccessibility")
         override fun onBindViewHolder(holder: ViewHolder, p1: Int) {
-            // значению toDoName -> даём 1-ое значение из базы данных
             holder.itemName.text = list[p1].itemName
             holder.itemName.isChecked = list[p1].isCompleted
-
             holder.itemName.setOnClickListener {
-                // reverse is completed
                 list[p1].isCompleted = !list[p1].isCompleted
                 activity.dbHandler.updateToDoItem(list[p1])
             }
-
             holder.delete.setOnClickListener {
                 val dialog = AlertDialog.Builder(activity)
-                dialog.setTitle("Подтвердите действия")
-                dialog.setMessage("Вы действительно хотите удалить это мини-задание?")
-                dialog.setPositiveButton("Удалить") { _: DialogInterface, _: Int ->
+                dialog.setTitle("Удаление")
+                dialog.setMessage("Вы действительно хотите удалить эту задачу ?")
+                dialog.setPositiveButton("Продолжить") { _: DialogInterface, _: Int ->
                     activity.dbHandler.deleteToDoItem(list[p1].id)
                     activity.refreshList()
                 }
@@ -135,26 +153,32 @@ class ItemActivity : AppCompatActivity() {
                 }
                 dialog.show()
             }
-
             holder.edit.setOnClickListener {
                 activity.updateItem(list[p1])
             }
+
+            holder.move.setOnTouchListener { v, event ->
+                if(event.actionMasked== MotionEvent.ACTION_DOWN){
+                    activity.touchHelper?.startDrag(holder)
+                }
+                false
+            }
         }
 
-        class ViewHolder(v : View): RecyclerView.ViewHolder(v) {
+        class ViewHolder(v: View) : RecyclerView.ViewHolder(v) {
             val itemName: CheckBox = v.findViewById(R.id.cb_item)
-            val edit : ImageView = v.findViewById(R.id.iv_edit)
-            val delete : ImageView = v.findViewById(R.id.iv_delete)
+            val edit: ImageView = v.findViewById(R.id.iv_edit)
+            val delete: ImageView = v.findViewById(R.id.iv_delete)
+            val move: ImageView = v.findViewById(R.id.iv_move)
         }
     }
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
-        // if true - toolbar button was pressed
         return if (item?.itemId == android.R.id.home) {
-            // clean activity
             finish()
             true
         } else
             super.onOptionsItemSelected(item)
     }
+
 }
